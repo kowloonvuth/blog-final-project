@@ -1,5 +1,10 @@
 import { compileMDX } from 'next-mdx-remote/rsc'
 import { BlogPost, Meta } from '@/types'
+import rehypeAutolinkHeadings from 'rehype-autolink-headings'
+import rehypeHighlight from 'rehype-highlight'
+import rehypeSlug from 'rehype-slug'
+import Video from '@/app/components/Video'
+import CustomImage from '@/app/components/CustomImage'
 
 type Filetree = {
     "tree": [
@@ -25,12 +30,25 @@ export async function getPostsByName(fileName: string): Promise<BlogPost | undef
 
     const { frontmatter, content } = await compileMDX<{title: string, date: string, tags: string[] }>({
         source: rawMDX,
+        components: {
+            Video,
+            CustomImage,
+        },
         options: {
             parseFrontmatter: true,
+            mdxOptions: {
+                rehypePlugins: [
+                    rehypeHighlight,
+                    rehypeSlug,
+                    [rehypeAutolinkHeadings, {
+                        behavior: 'wrap'
+                    }],
+                ],
+            },
         }
     })
 
-    const id = fileName.replace(/\.md$/, '')
+    const id = fileName.replace(/\.mdx$/, '')
 
     const blogPostObj: BlogPost = { meta: {id, title: frontmatter.title, date: frontmatter.date, tags: frontmatter.tags }, content}
 
@@ -50,7 +68,7 @@ export async function getPostsMeta(): Promise<Meta[] | undefined> {
 
     const repoFiletree: Filetree = await res.json()
 
-    const filesArray = repoFiletree.tree.map(obj => obj.path).filter(path => path.endsWith('.max'))
+    const filesArray = repoFiletree.tree.map(obj => obj.path).filter(path => path.endsWith('.mdx'))
 
     const posts: Meta[] = []
 
